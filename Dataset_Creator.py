@@ -22,7 +22,7 @@ class ModelDatabaseBuilder:
         self.base_directory = base_directory
 
         # Load the pre-trained model
-        self.model = getattr(models, model_name)(weights="IMAGENET1K_V1")
+        self.model = getattr(models, model_name)(weights="IMAGENET1K_V1") 
         self.model.eval()
 
         # Remove the classification head
@@ -86,8 +86,6 @@ class ModelDatabaseBuilder:
 
                         # Generate and process augmented versions
                         augmented_versions = [
-                            ("rotated_15", rotate(image, 15)),
-                            ("rotated_-15", rotate(image, -15)),
                             ("flipped", hflip(image)),
                         ]
 
@@ -99,7 +97,6 @@ class ModelDatabaseBuilder:
     def add_to_database(self, features, category, filename, image_path):
         """
         Adds feature vectors and metadata to the database.
-
         Args:
             features (np.ndarray): Feature vector.
             category (str): Image category.
@@ -140,7 +137,7 @@ class ModelDatabaseBuilder:
 
 
 if __name__ == "__main__":
-    model_name = "efficientnet_b7"  # Model from torchvision
+    model_name = "swin_b"  # Model from 
     base_directory = "DB"
 
     builder = ModelDatabaseBuilder(model_name=model_name, base_directory=base_directory)
@@ -148,7 +145,7 @@ if __name__ == "__main__":
     builder.build_database()
 
     builder.save_database(
-        metadata_path=f"B7/{model_name}_features_metadata.pkl",
-        index_path=f"B7/{model_name}_image_search_index.ann",
+        metadata_path=f"{model_name}/{model_name}_features_metadata.pkl",
+        index_path=f"{model_name}/{model_name}_image_search_index.ann",
         num_trees=200,
     )

@@ -102,7 +102,6 @@ class ImageSearchPredictor:
                 break
 
         return filtered_results
-
     def debug_categories(self):
         """
         Prints all unique categories in the database and the number of matches for each category.
@@ -161,20 +160,20 @@ class ImageSearchPredictor:
 if __name__ == "__main__":
     # Initialize the predictor
     predictor = ImageSearchPredictor(
-        index_path="B7/efficientnet_b7_image_search_index.ann",
-        metadata_path="B7/efficientnet_b7_features_metadata.pkl",
-        model_name="efficientnet_b7"  # Replace with your desired torchvision model
+        index_path="swin_b/swin_b_image_search_index.ann",
+        metadata_path="swin_b/swin_b_features_metadata.pkl",
+        model_name="swin_b"  # Replace with your desired torchvision model
     )
 
     # Debug categories and match counts
     predictor.debug_categories()
 
     # Extract features for the query image
-    query_image_path = "Screenshot from 2025-01-25 21-40-42.png"  # Replace with your image path
+    query_image_path = "DB/Sinks/download (27).png"  # Replace with your image path
     query_features = predictor.extract_features(query_image_path)
 
     # Perform a query (with or without category filter)
-    results = predictor.query(query_features, category_filter="Tail", top_n=30)
+    results = predictor.query(query_features, category_filter="Sinks", top_n=15)
 
     # Print the number of matches for each category in the results
     category_matches = {}
@@ -189,5 +188,3 @@ if __name__ == "__main__":
 
     # Visualize the query results
     predictor.visualize_results(query_image_path, results)
-
-
