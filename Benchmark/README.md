@@ -137,5 +137,3 @@ Dataset
 
 ## **Final Thoughts**
 This roadmap provides a structured plan to build, evaluate, and refine an **image-to-image search engine** focused on shape and color similarity. By following these steps—selecting a balanced dataset, clearly defining similarity, automating the evaluation process, and analyzing results—you will be able to reliably measure and improve your system’s performance over time. 
-
-Good luck with your benchmarking!
