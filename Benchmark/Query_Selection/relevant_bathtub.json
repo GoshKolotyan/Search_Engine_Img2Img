@@ -1,0 +1,16 @@
+{
+    "Massager_Tub":{
+        "tub_13": [
+            "tubs_20","tubs_41", "tubs_48", "tubs_55", "tubs_62", "tubs_69", "tubs_76","tubs_83",
+            "tubs_90", "tubs_97", "tubs_104" , "tubs_111", "tubs_118", "tubs_125", "tubs_132", "tubs_139",
+            "tubs_146", "tubs_153", "tubs_160" , "tubs_167", "tubs_174", "tubs_181", "tubs_188", "tubs_195", 
+            "tubs_202", "tubs_209", "tubs_216", "tubs_223", "tubs_230", "tubs_237", "tubs_244", "tubs_251", 
+            "tubs_258", "tubs_265", "272", "tubs_279", "tubs_286", "tubs_293", "tubs_300", "tubs_307", 
+            "tubs_314", "tubs_321", "tubs_328", "tubs_335", "tubs_342", "tubs_349", "tubs_363", "tubs_370", 
+            "tubs_397", "tubs_426", "tubs_433", "tubs_440", "tubs_447","6"
+        ]
+    },
+    "Freestanding with circle":{
+        "tub_4":["add here"]
+    }
+}
