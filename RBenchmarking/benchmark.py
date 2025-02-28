@@ -1,5 +1,9 @@
 import os
+import csv
+import glob
 import torch
+import numpy as np
+import pandas as pd 
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
@@ -9,9 +13,9 @@ from torchvision import transforms, models
 
 
 class RBenchmarking:
-    def __init__(self, folder_path, original_image_path, model_name):
+    def __init__(self, folder_path, model_name):
         self.folder_path = folder_path
-        self.original_image_path = original_image_path
+        self.original_image_path = self.folder_path + '/original.jpg'
         self.model_name = model_name
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -112,7 +116,19 @@ class RBenchmarking:
             "rotated_20": image.rotate(20),
         }
         return augmentations
+    def _record_to_csv(self, similarity_scores, model_name):
+        save_path = f"./plots/{self.folder_path.split('/')[-1]}"
+        csv_filename = f"{save_path}/{self.folder_path.split('/')[-1]}_records.csv"
 
+        with open(csv_filename, 'a', newline='') as f:  # Use 'a' to append results
+            records = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+            # Write header if the file is empty
+            if f.tell() == 0:
+                records.writerow(["Model Name", "Similarity Score"])
+
+            records.writerow([model_name, similarity_scores])  # Write each score with model name
+    
     def compute_augmented_similarities_for_all_images(self) -> dict:
         similarity_scores = {}
         all_augmented_images = {}
@@ -145,7 +161,7 @@ class RBenchmarking:
 
         plt.figure(
             figsize=(20, max(14, len(filenames) * 0.5))
-        )  # Adjust height dynamically
+        )  
         bars = plt.barh(
             filenames,
             scores,
@@ -188,25 +204,74 @@ class RBenchmarking:
         print(f"Saved in {save_path}" + f"/Dist_{self.model_name}.jpg")
         # plt.show()
 
+class Analyzer:
+    def __init__(self, paths):
+        self.paths = paths
+
+    def read_csv(self, path):
+        """Reads a CSV file and returns a DataFrame."""
+        try:
+            return pd.read_csv(path)
+        except Exception as e:
+            print(f"Error reading {path}: {e}")
+            return None
+
+    def __call__(self):
+        """Barplot: X-axis = Model Name, Y-axis = Similarity Score (from multiple CSVs with a legend)."""
+        dfs = {path: self.read_csv(path) for path in self.paths}
+        dfs = {path: df for path, df in dfs.items() if df is not None}  
+
+        if not dfs:
+            print("No valid CSV files to analyze.")
+            return
+
+        plt.figure(figsize=(12, 6))
+
+        num_csvs = len(dfs)
+        bar_width = 0.15  
+        index = np.arange(len(next(iter(dfs.values()))["Model Name"]))  
+
+        for i, (file_path, df) in enumerate(dfs.items()):
+            if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
+                print(f"Skipping {file_path}: Required columns missing.")
+                continue
+
+            df = df.sort_values("Model Name")
+            
+            model_names = df["Model Name"].values
+            scores = df["Similarity Score"].values
+
+            x_positions = index + (i * bar_width)
+
+            plt.bar(x_positions, scores, width=bar_width, label=f"File {i+1}: {file_path.split('/')[-1]}", alpha=0.7)
+
+        plt.xlabel("Model Name")
+        plt.ylabel("Similarity Score")
+        plt.title("Model Similarity Scores from Multiple CSV Files")
+        plt.xticks(index + (num_csvs * bar_width) / 2, model_names, rotation=45, ha="right")
+        plt.grid(visible=True, which="minor")
+        plt.legend()
+        plt.savefig(f"plots/barplots.jpg")        
+        # plt.show()
+
+
 
 if __name__ == "__main__":
     model_names = ["swin_t", "swin_b", "swin_s", "swin_v2_t", "swin_v2_b", "swin_v2_s"]
 
     images_dir = "Test Images"
 
+
     for filename in os.listdir(images_dir):
         folder_path = os.path.join(images_dir, filename)
 
-        original_image_path = os.path.join(folder_path, "original.jpg")
 
-        print(f"Processing: {original_image_path}")
 
         for model_name in model_names:
-            print(f"Running model {model_name} on {original_image_path}")
+            print(f"Running model {model_name}")
 
             rb = RBenchmarking(
-                folder_path=folder_path,  # Pass full folder path
-                original_image_path=original_image_path,
+                folder_path=folder_path,  
                 model_name=model_name,
             )
 
@@ -215,4 +280,18 @@ if __name__ == "__main__":
                 aug_results.items(), key=lambda x: x[1], reverse=False
             )
 
-            rb.plot(sorted_aug_results)
+            sum_score = [res[1] for res in sorted_aug_results]
+
+            average_score = sum(sum_score)/ len(sum_score)            
+            rb._record_to_csv(similarity_scores=average_score, model_name=model_name)
+
+
+    analyzer = Analyzer(paths="plots")
+
+
+    csv_dir = "plots"  
+    csv_files = glob.glob(os.path.join(csv_dir, "**/*.csv"), recursive=True)  
+
+    analyzer = Analyzer(paths=csv_files)
+    analyzer()
+    
