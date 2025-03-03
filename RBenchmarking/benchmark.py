@@ -7,6 +7,7 @@ import pandas as pd
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+import logging # TODO add looging
 from PIL import Image
 from pprint import pprint
 from torchvision import transforms, models
@@ -215,20 +216,19 @@ class Analyzer:
         except Exception as e:
             print(f"Error reading {path}: {e}")
             return None
-
-    def __call__(self):
-        """Barplot: X-axis = Model Name, Y-axis = Similarity Score (from multiple CSVs with a legend)."""
+        
+    def _plot(self):
         dfs = {path: self.read_csv(path) for path in self.paths}
         dfs = {path: df for path, df in dfs.items() if df is not None}  
-
+        
         if not dfs:
             print("No valid CSV files to analyze.")
             return
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(30, 20), dpi=200)
 
         num_csvs = len(dfs)
-        bar_width = 0.15  
+        bar_width = 0.1  
         index = np.arange(len(next(iter(dfs.values()))["Model Name"]))  
 
         for i, (file_path, df) in enumerate(dfs.items()):
@@ -243,17 +243,78 @@ class Analyzer:
 
             x_positions = index + (i * bar_width)
 
-            plt.bar(x_positions, scores, width=bar_width, label=f"File {i+1}: {file_path.split('/')[-1]}", alpha=0.7)
+            bars = plt.bar(x_positions, scores, width=bar_width, label=f"File {i+1}: {file_path.split('/')[-1]}", alpha=0.7)
+
+            for bar in bars:
+                height = bar.get_height()
+                plt.text(bar.get_x() + bar.get_width() / 2, height + 0.01, f"{height:.2f}", ha='center', fontsize=10)
 
         plt.xlabel("Model Name")
         plt.ylabel("Similarity Score")
         plt.title("Model Similarity Scores from Multiple CSV Files")
         plt.xticks(index + (num_csvs * bar_width) / 2, model_names, rotation=45, ha="right")
-        plt.grid(visible=True, which="minor")
+        plt.grid(visible=True)
         plt.legend()
+        plt.tight_layout(pad=4)
         plt.savefig(f"plots/barplots.jpg")        
         # plt.show()
 
+    
+    def _avg_plot(self):
+
+        valid_dfs = []
+        for path in self.paths:
+            df = self.read_csv(path)
+            if df is None:
+                print(f"Skipping {path}: Could not read file.")
+                continue
+            if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
+                print(f"Skipping {path}: Required columns missing.")
+                continue
+            valid_dfs.append(df)
+
+        if not valid_dfs:
+            print("No valid CSV files to analyze.")
+            return
+
+        all_data = pd.concat(valid_dfs, ignore_index=True)
+
+        avg_scores = (
+            all_data.groupby("Model Name")["Similarity Score"]
+            .mean()
+            .reset_index()
+            .sort_values("Model Name")
+        )
+        plt.figure(figsize=(30, 20), dpi=200)
+        x_positions = np.arange(len(avg_scores))
+        scores = avg_scores["Similarity Score"].values
+        model_names = avg_scores["Model Name"].values
+
+        bars = plt.bar(x_positions, scores, alpha=0.7)
+
+        for bar in bars:
+            height = bar.get_height()
+            plt.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + 0.01,
+                f"{height:.2f}",
+                ha="center",
+                fontsize=10
+            )
+
+        plt.xlabel("Model Name")
+        plt.ylabel("Average Similarity Score")
+        plt.title("Average Model Similarity Scores Across CSV Files")
+        plt.xticks(x_positions, model_names, rotation=45, ha="right")
+        plt.grid(True)
+        plt.legend(["Avg Similarity Score"])
+        plt.savefig("plots/avg_scores.jpg")
+        # plt.show()
+
+
+    def __call__(self):
+        self._plot()
+        self._avg_plot()
 
 
 if __name__ == "__main__":
