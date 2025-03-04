@@ -6,11 +6,22 @@ import numpy as np
 import pandas as pd 
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-
-import logging # TODO add looging
+import logging
 from PIL import Image
-from pprint import pprint
 from torchvision import transforms, models
+
+os.makedirs("plots", exist_ok=True)
+os.makedirs("logs", exist_ok=True) 
+
+logging.basicConfig(
+    format="{asctime} - {levelname} - {message}",
+    level=logging.INFO,
+    style="{",
+    datefmt="%Y-%m-%d %H:%M",
+    filename='./logs/errores.log'  
+)
+
+logging.info("Application started successfully.")
 
 
 class RBenchmarking:
@@ -51,7 +62,7 @@ class RBenchmarking:
             img = Image.open(image_path).convert("RGB")
             return img
         except Exception as e:
-            print(f"Error loading image at {image_path}: {e}")
+            logging.info(f"Error loading image at {image_path}: {e}")
             return None
 
     def _compute_features(self, image: Image.Image) -> torch.Tensor:
@@ -77,7 +88,7 @@ class RBenchmarking:
     def visualize_all_images(self, all_augmented_images, similarity_scores):
         num_images = len(all_augmented_images)
         num_augmentations = len(next(iter(all_augmented_images.values())))
-        _, axes = plt.subplots(
+        fig, axes = plt.subplots(
             num_images, num_augmentations, figsize=(10, 3 * num_images), dpi=100
         )
 
@@ -101,11 +112,13 @@ class RBenchmarking:
             fontweight="bold",
         )
         plt.tight_layout(pad=4)
-        save_path = f"./plots/{self.folder_path.split('/')[-1]}"
+        save_path = f"./plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
-            os.mkdir(save_path)
+            os.makedirs(save_path, exist_ok=True)
         plt.savefig(save_path + f"/Compar_all_images_{self.model_name}.jpg")
-        print(f"Saved in {save_path}" + f"Dist_{self.model_name}.jpg")
+        plt.close(fig)
+
+        logging.info(f"Saved in {save_path}" + f"Compare_all_{self.model_name}.jpg")
 
         # plt.show()
 
@@ -124,11 +137,10 @@ class RBenchmarking:
         with open(csv_filename, 'a', newline='') as f:  # Use 'a' to append results
             records = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            # Write header if the file is empty
             if f.tell() == 0:
                 records.writerow(["Model Name", "Similarity Score"])
 
-            records.writerow([model_name, similarity_scores])  # Write each score with model name
+            records.writerow([model_name, similarity_scores]) 
     
     def compute_augmented_similarities_for_all_images(self) -> dict:
         similarity_scores = {}
@@ -155,6 +167,8 @@ class RBenchmarking:
         self.visualize_all_images(all_augmented_images, similarity_scores)
 
         return similarity_scores
+    
+    #TODO crop image by sizes 
 
     def plot(self, sorted_results):
 
@@ -198,11 +212,12 @@ class RBenchmarking:
         plt.legend()
 
         plt.tight_layout()
-        save_path = f"./plots/{self.folder_path.split('/')[-1]}"
+        save_path = f"./plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
             os.mkdir(save_path)
         plt.savefig(save_path + f"/Dist_{self.model_name}.jpg")
-        print(f"Saved in {save_path}" + f"/Dist_{self.model_name}.jpg")
+        plt.close()
+        logging.info(f"Saved in {save_path}" + f"/Dist_{self.model_name}.jpg")
         # plt.show()
 
 class Analyzer:
@@ -212,9 +227,10 @@ class Analyzer:
     def read_csv(self, path):
         """Reads a CSV file and returns a DataFrame."""
         try:
+            logging.info(f"Loading csv from {path}")
             return pd.read_csv(path)
         except Exception as e:
-            print(f"Error reading {path}: {e}")
+            logging.info(f"Error reading {path}: {e}")
             return None
         
     def _plot(self):
@@ -222,7 +238,7 @@ class Analyzer:
         dfs = {path: df for path, df in dfs.items() if df is not None}  
         
         if not dfs:
-            print("No valid CSV files to analyze.")
+            logging.info("No valid CSV files to analyze.")
             return
 
         plt.figure(figsize=(30, 20), dpi=200)
@@ -233,7 +249,7 @@ class Analyzer:
 
         for i, (file_path, df) in enumerate(dfs.items()):
             if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
-                print(f"Skipping {file_path}: Required columns missing.")
+                logging.info(f"Skipping {file_path}: Required columns missing.")
                 continue
 
             df = df.sort_values("Model Name")
@@ -252,11 +268,12 @@ class Analyzer:
         plt.xlabel("Model Name")
         plt.ylabel("Similarity Score")
         plt.title("Model Similarity Scores from Multiple CSV Files")
-        plt.xticks(index + (num_csvs * bar_width) / 2, model_names, rotation=45, ha="right")
+        plt.xticks(index + (num_csvs * bar_width) / 2, model_names, rotation=0, ha="right")
         plt.grid(visible=True)
         plt.legend()
         plt.tight_layout(pad=4)
-        plt.savefig(f"plots/barplots.jpg")        
+        plt.savefig(f"plots/barplots.jpg")     
+        plt.close()   
         # plt.show()
 
     
@@ -266,15 +283,15 @@ class Analyzer:
         for path in self.paths:
             df = self.read_csv(path)
             if df is None:
-                print(f"Skipping {path}: Could not read file.")
+                logging.info(f"Skipping {path}: Could not read file.")
                 continue
             if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
-                print(f"Skipping {path}: Required columns missing.")
+                logging.info(f"Skipping {path}: Required columns missing.")
                 continue
             valid_dfs.append(df)
 
         if not valid_dfs:
-            print("No valid CSV files to analyze.")
+            logging.info("No valid CSV files to analyze.")
             return
 
         all_data = pd.concat(valid_dfs, ignore_index=True)
@@ -305,10 +322,11 @@ class Analyzer:
         plt.xlabel("Model Name")
         plt.ylabel("Average Similarity Score")
         plt.title("Average Model Similarity Scores Across CSV Files")
-        plt.xticks(x_positions, model_names, rotation=45, ha="right")
+        plt.xticks(x_positions, model_names, rotation=0, ha="right")
         plt.grid(True)
         plt.legend(["Avg Similarity Score"])
         plt.savefig("plots/avg_scores.jpg")
+        plt.close()
         # plt.show()
 
 
@@ -329,7 +347,7 @@ if __name__ == "__main__":
 
 
         for model_name in model_names:
-            print(f"Running model {model_name}")
+            logging.info(f"Running model {model_name}")
 
             rb = RBenchmarking(
                 folder_path=folder_path,  
@@ -337,14 +355,20 @@ if __name__ == "__main__":
             )
 
             aug_results = rb.compute_augmented_similarities_for_all_images()
+            #Must be added here
             sorted_aug_results = sorted(
                 aug_results.items(), key=lambda x: x[1], reverse=False
             )
+
+            rb.plot(sorted_results=sorted_aug_results)
 
             sum_score = [res[1] for res in sorted_aug_results]
 
             average_score = sum(sum_score)/ len(sum_score)            
             rb._record_to_csv(similarity_scores=average_score, model_name=model_name)
+            # break
+        # break
+
 
 
     analyzer = Analyzer(paths="plots")
