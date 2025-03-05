@@ -1,77 +1,75 @@
-import os 
+import os
 import logging
 import glob
+from pathlib import Path
 from analyzer import Analyzer
 from benchmark import RBenchmarking
+from configs import MODEL_NAMES, IMAGES_DIR
 
 
-if __name__ == "__main__":
+def setup_directories():
+    Path("../plots").mkdir(parents=True, exist_ok=True)
+    Path("../logs").mkdir(parents=True, exist_ok=True)
 
-    os.makedirs("../plots", exist_ok=True)
-    os.makedirs("../logs", exist_ok=True)
 
-
+def setup_logging():
     logging.basicConfig(
-    format="{asctime} - {levelname} - {message}",
-    level=logging.INFO,
-    style="{",
-    datefmt="%Y-%m-%d %H:%M",
-    filename="../logs/info.log",
+        format="{asctime} - {levelname} - {message}",
+        level=logging.INFO,
+        style="{",
+        datefmt="%Y-%m-%d %H:%M",
+        filename="../logs/info.log",
     )
-
     logging.info("Application started successfully.")
 
 
-    model_names = [
-                   "convnext_large",
-                   "efficientnet_v2_l",
-                   "mobilenet_v3_large",
-                   "alexnet", 
-                   "vit_l_16",
-                   "vit_b_32",
-                   "swin_t", 
-                   "wide_resnet101_2",
-                   "resnext101_64x4d",
-                   "shufflenet_v2_x2_0",
-                   "swin_b", 
-                   "swin_s", 
-                   "swin_v2_t", 
-                   "swin_v2_b", 
-                   "swin_v2_s"
-                   ]
+def process_image_folder(folder_path: str):
+    if not Path(folder_path).exists():
+        logging.warning(f"Skipping {folder_path}: Directory not found.")
+        return
 
-    images_dir = "../Test Images"
+    for model_name in MODEL_NAMES:
+        logging.info(f"Processing model: {model_name} on folder: {folder_path}")
 
-    for filename in os.listdir(images_dir):
-        folder_path = os.path.join(images_dir, filename)
-
-        for model_name in model_names:
-            logging.info(f"Running model {model_name}")
-
-            rb = RBenchmarking(
-                folder_path=folder_path,
-                model_name=model_name,
-            )
-
+        try:
+            rb = RBenchmarking(folder_path=folder_path, model_name=model_name)
             aug_results = rb.compute_augmented_similarities_for_all_images()
-            # Must be added here
-            sorted_aug_results = sorted(
-                aug_results.items(), key=lambda x: x[1], reverse=False
-            )
+
+            sorted_aug_results = sorted(aug_results.items(), key=lambda x: x[1])
 
             rb.plot(sorted_results=sorted_aug_results)
 
             sum_score = [res[1] for res in sorted_aug_results]
+            average_score = sum(sum_score) / len(sum_score) if sum_score else 0.0
 
-            average_score = sum(sum_score) / len(sum_score)
             rb._record_to_csv(similarity_scores=average_score, model_name=model_name)
-            # break
-        # break
 
-    analyzer = Analyzer(paths="../plots")
+        except Exception as e:
+            logging.error(f"Error processing {model_name} on {folder_path}: {e}")
 
-    csv_dir = "../plots"
-    csv_files = glob.glob(os.path.join(csv_dir, "**/*.csv"), recursive=True)
+
+def analyze_results():
+    csv_dir = Path("../plots")
+    csv_files = glob.glob(str(csv_dir / "**/*.csv"), recursive=True)
+
+    if not csv_files:
+        logging.warning("No CSV files found for analysis.")
+        return
 
     analyzer = Analyzer(paths=csv_files)
     analyzer()
+
+
+if __name__ == "__main__":
+    setup_directories()
+    setup_logging()
+
+    image_folders = [os.path.join(IMAGES_DIR, folder) for folder in os.listdir(IMAGES_DIR)]
+    
+    if not image_folders:
+        logging.warning(f"No image folders found in {IMAGES_DIR}. Exiting.")
+    else:
+        for folder in image_folders:
+            process_image_folder(folder)
+
+        analyze_results()

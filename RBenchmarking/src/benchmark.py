@@ -30,13 +30,11 @@ class RBenchmarking:
             self.model = create_feature_extractor(self.model, return_nodes=return_nodes)
         else:
             # Extract features from the last convolutional layer
-
             self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
 
         self.model.to(self.device)
         self.model.eval()
 
-        # Preprocessing
         self.preprocess = transforms.Compose(
             [
                 transforms.Resize((224, 224)),
