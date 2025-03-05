@@ -65,12 +65,12 @@ class Analyzer:
         plt.ylabel("Similarity Score")
         plt.title("Model Similarity Scores from Multiple CSV Files")
         plt.xticks(
-            index + (num_csvs * bar_width) / 2, model_names, rotation=0, ha="right"
+            index + (num_csvs * bar_width) / 2, model_names, rotation=0, ha="center"
         )
         plt.grid(visible=True)
         plt.legend()
         plt.tight_layout(pad=4)
-        plt.savefig(f"plots/barplots.jpg")
+        plt.savefig(f"../plots/barplots.jpg")
         plt.close()
         # plt.show()
 
@@ -119,10 +119,10 @@ class Analyzer:
         plt.xlabel("Model Name")
         plt.ylabel("Average Similarity Score")
         plt.title("Average Model Similarity Scores Across CSV Files")
-        plt.xticks(x_positions, model_names, rotation=0, ha="right")
+        plt.xticks(x_positions, model_names, rotation=0, ha="center")
         plt.grid(True)
         plt.legend(["Avg Similarity Score"])
-        plt.savefig("plots/avg_scores.jpg")
+        plt.savefig("../plots/avg_scores.jpg")
         plt.close()
         # plt.show()
 

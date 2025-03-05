@@ -1,17 +1,16 @@
 import os
 import csv
-import glob
 import torch
-import numpy as np
-import pandas as pd
+import logging
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-import logging
+
+
 from PIL import Image
 from torchvision import transforms, models
+from torchvision.models.feature_extraction import create_feature_extractor
 
-os.makedirs("plots", exist_ok=True)
-os.makedirs("logs", exist_ok=True)
+
 
 class RBenchmarking:
     def __init__(self, folder_path, model_name):
@@ -23,10 +22,21 @@ class RBenchmarking:
 
         self.model = getattr(models, self.model_name)(weights="IMAGENET1K_V1")
 
-        self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
+
+        # Different handling for ViTs vs. CNNs
+        if "vit" in self.model_name:
+            # Extract features from transformer’s last hidden state
+            return_nodes = {"encoder.ln": "features"}
+            self.model = create_feature_extractor(self.model, return_nodes=return_nodes)
+        else:
+            # Extract features from the last convolutional layer
+
+            self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
+
         self.model.to(self.device)
         self.model.eval()
 
+        # Preprocessing
         self.preprocess = transforms.Compose(
             [
                 transforms.Resize((224, 224)),
@@ -44,7 +54,11 @@ class RBenchmarking:
             )
         self.original_image = self._load_image(self.original_image_path)
 
-        self.original_features = self._compute_features(self.original_image)
+        if "vit" in self.model_name:
+            self.original_features = self._compute_features_vit(self.original_image) 
+        else:
+            self.original_features = self._compute_features(self.original_image) 
+
 
     def _load_image(self, image_path: str) -> Image.Image:
         try:
@@ -53,7 +67,7 @@ class RBenchmarking:
         except Exception as e:
             logging.error(f"Error loading image at {image_path}: {e}")
             return None
-
+        
     def _compute_features(self, image: Image.Image) -> torch.Tensor:
         if image is None:
             return None
@@ -62,6 +76,22 @@ class RBenchmarking:
 
         with torch.no_grad():
             features = self.model(tensor)
+
+        features = features.view(features.size(0), -1)
+        features = features / torch.norm(features, p=2, dim=1, keepdim=True)
+        return features
+    
+    def _compute_features_vit(self, image: Image.Image) -> torch.Tensor:
+        if image is None:
+            return None
+
+        tensor = self.preprocess(image).unsqueeze(0).to(self.device)
+
+        with torch.no_grad():
+            # This returns a dictionary
+            output_dict = self.model(tensor)
+
+        features = output_dict["features"]
 
         features = features.view(features.size(0), -1)
         features = features / torch.norm(features, p=2, dim=1, keepdim=True)
@@ -101,7 +131,7 @@ class RBenchmarking:
             fontweight="bold",
         )
         plt.tight_layout(pad=4)
-        save_path = f"./plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
+        save_path = f"../plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
         plt.savefig(save_path + f"/Compar_all_images_{self.model_name}.jpg")
@@ -132,7 +162,7 @@ class RBenchmarking:
 
 
     def _record_to_csv(self, similarity_scores, model_name):
-        save_path = f"./plots/{self.folder_path.split('/')[-1]}"
+        save_path = f"../plots/{self.folder_path.split('/')[-1]}"
         csv_filename = f"{save_path}/{self.folder_path.split('/')[-1]}_records.csv"
 
         with open(csv_filename, "a", newline="") as f:  # Use 'a' to append results
@@ -164,7 +194,10 @@ class RBenchmarking:
             all_augmented_images[filename] = augmented_images
 
             for aug_name, aug_image in augmented_images.items():
-                features = self._compute_features(aug_image)
+                if "vit" in self.model_name:
+                    features = self._compute_features_vit(aug_image)
+                else:
+                    features = self._compute_features(aug_image)
                 score = self.compute_similarity(features)
                 similarity_scores[f"{filename} ({aug_name})"] = score
         self.visualize_all_images(all_augmented_images, similarity_scores)
@@ -213,7 +246,7 @@ class RBenchmarking:
         plt.legend()
 
         plt.tight_layout()
-        save_path = f"./plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
+        save_path = f"../plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
             os.mkdir(save_path)
         plt.savefig(save_path + f"/Dist_{self.model_name}.jpg")

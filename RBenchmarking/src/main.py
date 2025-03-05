@@ -7,20 +7,40 @@ from benchmark import RBenchmarking
 
 if __name__ == "__main__":
 
+    os.makedirs("../plots", exist_ok=True)
+    os.makedirs("../logs", exist_ok=True)
+
+
     logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
     level=logging.INFO,
     style="{",
     datefmt="%Y-%m-%d %H:%M",
-    filename="./logs/info.log",
+    filename="../logs/info.log",
     )
 
     logging.info("Application started successfully.")
 
 
-    model_names = ["swin_t", "swin_b", "swin_s", "swin_v2_t", "swin_v2_b", "swin_v2_s"]
+    model_names = [
+                   "convnext_large",
+                   "efficientnet_v2_l",
+                   "mobilenet_v3_large",
+                   "alexnet", 
+                   "vit_l_16",
+                   "vit_b_32",
+                   "swin_t", 
+                   "wide_resnet101_2",
+                   "resnext101_64x4d",
+                   "shufflenet_v2_x2_0",
+                   "swin_b", 
+                   "swin_s", 
+                   "swin_v2_t", 
+                   "swin_v2_b", 
+                   "swin_v2_s"
+                   ]
 
-    images_dir = "Test Images"
+    images_dir = "../Test Images"
 
     for filename in os.listdir(images_dir):
         folder_path = os.path.join(images_dir, filename)
@@ -48,9 +68,9 @@ if __name__ == "__main__":
             # break
         # break
 
-    analyzer = Analyzer(paths="plots")
+    analyzer = Analyzer(paths="../plots")
 
-    csv_dir = "plots"
+    csv_dir = "../plots"
     csv_files = glob.glob(os.path.join(csv_dir, "**/*.csv"), recursive=True)
 
     analyzer = Analyzer(paths=csv_files)
