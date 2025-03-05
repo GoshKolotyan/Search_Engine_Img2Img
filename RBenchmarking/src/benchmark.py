@@ -13,17 +13,6 @@ from torchvision import transforms, models
 os.makedirs("plots", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
 
-logging.basicConfig(
-    format="{asctime} - {levelname} - {message}",
-    level=logging.INFO,
-    style="{",
-    datefmt="%Y-%m-%d %H:%M",
-    filename="./logs/errores.log",
-)
-
-logging.info("Application started successfully.")
-
-
 class RBenchmarking:
     def __init__(self, folder_path, model_name):
         self.folder_path = folder_path
@@ -62,7 +51,7 @@ class RBenchmarking:
             img = Image.open(image_path).convert("RGB")
             return img
         except Exception as e:
-            logging.info(f"Error loading image at {image_path}: {e}")
+            logging.error(f"Error loading image at {image_path}: {e}")
             return None
 
     def _compute_features(self, image: Image.Image) -> torch.Tensor:
@@ -118,7 +107,7 @@ class RBenchmarking:
         plt.savefig(save_path + f"/Compar_all_images_{self.model_name}.jpg")
         plt.close(fig)
 
-        logging.info(f"Saved in {save_path}" + f"Compare_all_{self.model_name}.jpg")
+        logging.info(f"Saved in {save_path}/" + f"Compare_all_{self.model_name}.jpg")
 
         # plt.show()
 
@@ -231,170 +220,3 @@ class RBenchmarking:
         plt.close()
         logging.info(f"Saved in {save_path}" + f"/Dist_{self.model_name}.jpg")
         # plt.show()
-
-
-class Analyzer:
-    def __init__(self, paths):
-        self.paths = paths
-
-    def read_csv(self, path):
-        """Reads a CSV file and returns a DataFrame."""
-        try:
-            logging.info(f"Loading csv from {path}")
-            return pd.read_csv(path)
-        except Exception as e:
-            logging.info(f"Error reading {path}: {e}")
-            return None
-
-    def _plot(self):
-        dfs = {path: self.read_csv(path) for path in self.paths}
-        dfs = {path: df for path, df in dfs.items() if df is not None}
-
-        if not dfs:
-            logging.info("No valid CSV files to analyze.")
-            return
-
-        plt.figure(figsize=(30, 20), dpi=200)
-
-        num_csvs = len(dfs)
-        bar_width = 0.1
-        index = np.arange(len(next(iter(dfs.values()))["Model Name"]))
-
-        for i, (file_path, df) in enumerate(dfs.items()):
-            if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
-                logging.info(f"Skipping {file_path}: Required columns missing.")
-                continue
-
-            df = df.sort_values("Model Name")
-
-            model_names = df["Model Name"].values
-            scores = df["Similarity Score"].values
-
-            x_positions = index + (i * bar_width)
-
-            bars = plt.bar(
-                x_positions,
-                scores,
-                width=bar_width,
-                label=f"File {i+1}: {file_path.split('/')[-1]}",
-                alpha=0.7,
-            )
-
-            for bar in bars:
-                height = bar.get_height()
-                plt.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    height + 0.01,
-                    f"{height:.2f}",
-                    ha="center",
-                    fontsize=10,
-                )
-
-        plt.xlabel("Model Name")
-        plt.ylabel("Similarity Score")
-        plt.title("Model Similarity Scores from Multiple CSV Files")
-        plt.xticks(
-            index + (num_csvs * bar_width) / 2, model_names, rotation=0, ha="right"
-        )
-        plt.grid(visible=True)
-        plt.legend()
-        plt.tight_layout(pad=4)
-        plt.savefig(f"plots/barplots.jpg")
-        plt.close()
-        # plt.show()
-
-    def _avg_plot(self):
-
-        valid_dfs = []
-        for path in self.paths:
-            df = self.read_csv(path)
-            if df is None:
-                logging.info(f"Skipping {path}: Could not read file.")
-                continue
-            if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
-                logging.info(f"Skipping {path}: Required columns missing.")
-                continue
-            valid_dfs.append(df)
-
-        if not valid_dfs:
-            logging.info("No valid CSV files to analyze.")
-            return
-
-        all_data = pd.concat(valid_dfs, ignore_index=True)
-
-        avg_scores = (
-            all_data.groupby("Model Name")["Similarity Score"]
-            .mean()
-            .reset_index()
-            .sort_values("Model Name")
-        )
-        plt.figure(figsize=(30, 20), dpi=200)
-        x_positions = np.arange(len(avg_scores))
-        scores = avg_scores["Similarity Score"].values
-        model_names = avg_scores["Model Name"].values
-
-        bars = plt.bar(x_positions, scores, alpha=0.7)
-
-        for bar in bars:
-            height = bar.get_height()
-            plt.text(
-                bar.get_x() + bar.get_width() / 2,
-                height + 0.01,
-                f"{height:.2f}",
-                ha="center",
-                fontsize=10,
-            )
-
-        plt.xlabel("Model Name")
-        plt.ylabel("Average Similarity Score")
-        plt.title("Average Model Similarity Scores Across CSV Files")
-        plt.xticks(x_positions, model_names, rotation=0, ha="right")
-        plt.grid(True)
-        plt.legend(["Avg Similarity Score"])
-        plt.savefig("plots/avg_scores.jpg")
-        plt.close()
-        # plt.show()
-
-    def __call__(self):
-        self._plot()
-        self._avg_plot()
-
-
-if __name__ == "__main__":
-    model_names = ["swin_t", "swin_b", "swin_s", "swin_v2_t", "swin_v2_b", "swin_v2_s"]
-
-    images_dir = "Test Images"
-
-    for filename in os.listdir(images_dir):
-        folder_path = os.path.join(images_dir, filename)
-
-        for model_name in model_names:
-            logging.info(f"Running model {model_name}")
-
-            rb = RBenchmarking(
-                folder_path=folder_path,
-                model_name=model_name,
-            )
-
-            aug_results = rb.compute_augmented_similarities_for_all_images()
-            # Must be added here
-            sorted_aug_results = sorted(
-                aug_results.items(), key=lambda x: x[1], reverse=False
-            )
-
-            rb.plot(sorted_results=sorted_aug_results)
-
-            sum_score = [res[1] for res in sorted_aug_results]
-
-            average_score = sum(sum_score) / len(sum_score)
-            rb._record_to_csv(similarity_scores=average_score, model_name=model_name)
-            # break
-        # break
-
-    analyzer = Analyzer(paths="plots")
-
-    csv_dir = "plots"
-    csv_files = glob.glob(os.path.join(csv_dir, "**/*.csv"), recursive=True)
-
-    analyzer = Analyzer(paths=csv_files)
-    analyzer()
