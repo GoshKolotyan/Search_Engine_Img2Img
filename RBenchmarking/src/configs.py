@@ -10,10 +10,10 @@ MODEL_NAMES = [
         "alexnet",
         "vit_l_16",
         "vit_b_32",
-        "swin_t",
         "wide_resnet101_2",
         "resnext101_64x4d",
         "shufflenet_v2_x2_0",
+        "swin_t",
         "swin_b",
         "swin_s",
         "swin_v2_t",
@@ -22,3 +22,4 @@ MODEL_NAMES = [
     ]
 
 IMAGES_DIR = "../Test Images"
+OUTPUT_DIR = "TOILET_PLOTS"

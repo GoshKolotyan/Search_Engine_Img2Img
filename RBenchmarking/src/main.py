@@ -4,12 +4,12 @@ import glob
 from pathlib import Path
 from analyzer import Analyzer
 from benchmark import RBenchmarking
-from configs import MODEL_NAMES, IMAGES_DIR
+from configs import MODEL_NAMES, IMAGES_DIR, OUTPUT_DIR
 
 
 def setup_directories():
-    Path("../plots").mkdir(parents=True, exist_ok=True)
-    Path("../logs").mkdir(parents=True, exist_ok=True)
+    Path(f"../{OUTPUT_DIR}").mkdir(parents=True, exist_ok=True)
+    Path(f"../{OUTPUT_DIR}/logs").mkdir(parents=True, exist_ok=True)
 
 
 def setup_logging():
@@ -18,7 +18,7 @@ def setup_logging():
         level=logging.INFO,
         style="{",
         datefmt="%Y-%m-%d %H:%M",
-        filename="../logs/info.log",
+        filename=f"../{OUTPUT_DIR}/logs/info.log",
     )
     logging.info("Application started successfully.")
 
@@ -32,7 +32,7 @@ def process_image_folder(folder_path: str):
         logging.info(f"Processing model: {model_name} on folder: {folder_path}")
 
         try:
-            rb = RBenchmarking(folder_path=folder_path, model_name=model_name)
+            rb = RBenchmarking(folder_path=folder_path, model_name=model_name, output_dir=OUTPUT_DIR)
             aug_results = rb.compute_augmented_similarities_for_all_images()
 
             sorted_aug_results = sorted(aug_results.items(), key=lambda x: x[1])
@@ -49,14 +49,14 @@ def process_image_folder(folder_path: str):
 
 
 def analyze_results():
-    csv_dir = Path("../plots")
+    csv_dir = Path(f"../{OUTPUT_DIR}")
     csv_files = glob.glob(str(csv_dir / "**/*.csv"), recursive=True)
 
     if not csv_files:
         logging.warning("No CSV files found for analysis.")
         return
 
-    analyzer = Analyzer(paths=csv_files)
+    analyzer = Analyzer(paths=csv_files, output_dir=OUTPUT_DIR)
     analyzer()
 
 

@@ -5,8 +5,9 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 
 class Analyzer:
-    def __init__(self, paths):
+    def __init__(self, paths, output_dir):
         self.paths = paths
+        self.output_dir = output_dir
 
     def read_csv(self, path):
         """Reads a CSV file and returns a DataFrame."""
@@ -25,7 +26,7 @@ class Analyzer:
             logging.error("No valid CSV files to analyze.")
             return
 
-        plt.figure(figsize=(30, 20), dpi=200)
+        plt.figure(figsize=(120, 60), dpi=200)
 
         num_csvs = len(dfs)
         bar_width = 0.1
@@ -65,12 +66,12 @@ class Analyzer:
         plt.ylabel("Similarity Score")
         plt.title("Model Similarity Scores from Multiple CSV Files")
         plt.xticks(
-            index + (num_csvs * bar_width) / 2, model_names, rotation=0, ha="center"
+            index + (num_csvs * bar_width) / 2, model_names, rotation=15, ha="center"
         )
         plt.grid(visible=True)
         plt.legend()
         plt.tight_layout(pad=4)
-        plt.savefig(f"../plots/barplots.jpg")
+        plt.savefig(f"../{self.output_dir}/barplots.jpg")
         plt.close()
         # plt.show()
 
@@ -119,10 +120,10 @@ class Analyzer:
         plt.xlabel("Model Name")
         plt.ylabel("Average Similarity Score")
         plt.title("Average Model Similarity Scores Across CSV Files")
-        plt.xticks(x_positions, model_names, rotation=0, ha="center")
+        plt.xticks(x_positions, model_names, rotation=15, ha="center")
         plt.grid(True)
         plt.legend(["Avg Similarity Score"])
-        plt.savefig("../plots/avg_scores.jpg")
+        plt.savefig(f"../{self.output_dir}/avg_scores.jpg")
         plt.close()
         # plt.show()
 

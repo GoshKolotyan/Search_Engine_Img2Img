@@ -13,7 +13,8 @@ from torchvision.models.feature_extraction import create_feature_extractor
 
 
 class RBenchmarking:
-    def __init__(self, folder_path, model_name):
+    def __init__(self, folder_path, model_name, output_dir):
+        self.output_dir = output_dir
         self.folder_path = folder_path
         self.original_image_path = self.folder_path + "/original.jpg"
         self.model_name = model_name
@@ -129,7 +130,7 @@ class RBenchmarking:
             fontweight="bold",
         )
         plt.tight_layout(pad=4)
-        save_path = f"../plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
+        save_path = f"../{self.output_dir}/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
         plt.savefig(save_path + f"/Compar_all_images_{self.model_name}.jpg")
@@ -160,7 +161,7 @@ class RBenchmarking:
 
 
     def _record_to_csv(self, similarity_scores, model_name):
-        save_path = f"../plots/{self.folder_path.split('/')[-1]}"
+        save_path = f"../{self.output_dir}/{self.folder_path.split('/')[-1]}"
         csv_filename = f"{save_path}/{self.folder_path.split('/')[-1]}_records.csv"
 
         with open(csv_filename, "a", newline="") as f:  # Use 'a' to append results
@@ -202,8 +203,6 @@ class RBenchmarking:
 
         return similarity_scores
 
-    # TODO crop image by sizes
-
     def plot(self, sorted_results):
 
         filenames, scores = zip(*sorted_results)
@@ -244,7 +243,7 @@ class RBenchmarking:
         plt.legend()
 
         plt.tight_layout()
-        save_path = f"../plots/{self.folder_path.split('/')[-1]}/{self.model_name}"
+        save_path = f"../{self.output_dir}/{self.folder_path.split('/')[-1]}/{self.model_name}"
         if not os.path.exists(save_path):
             os.mkdir(save_path)
         plt.savefig(save_path + f"/Dist_{self.model_name}.jpg")
