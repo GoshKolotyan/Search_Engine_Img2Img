@@ -1,8 +1,8 @@
-
-import logging 
+import logging
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+
 
 class Analyzer:
     def __init__(self, paths, output_dir):
@@ -10,7 +10,6 @@ class Analyzer:
         self.output_dir = output_dir
 
     def read_csv(self, path):
-        """Reads a CSV file and returns a DataFrame."""
         try:
             logging.info(f"Loading csv from {path}")
             return pd.read_csv(path)
@@ -26,11 +25,11 @@ class Analyzer:
             logging.error("No valid CSV files to analyze.")
             return
 
-        plt.figure(figsize=(120, 60), dpi=200)
-
         num_csvs = len(dfs)
-        bar_width = 0.1
+        bar_width = 0.8 / num_csvs
         index = np.arange(len(next(iter(dfs.values()))["Model Name"]))
+        figsize = (60, 25)
+        plt.figure(figsize=figsize, dpi=200)
 
         for i, (file_path, df) in enumerate(dfs.items()):
             if "Model Name" not in df.columns or "Similarity Score" not in df.columns:
@@ -59,7 +58,7 @@ class Analyzer:
                     height + 0.01,
                     f"{height:.2f}",
                     ha="center",
-                    fontsize=10,
+                    fontsize=5,
                 )
 
         plt.xlabel("Model Name")
@@ -68,9 +67,9 @@ class Analyzer:
         plt.xticks(
             index + (num_csvs * bar_width) / 2, model_names, rotation=15, ha="center"
         )
+        plt.axhline(y=0.7, linewidth=1, color="k")
         plt.grid(visible=True)
         plt.legend()
-        plt.tight_layout(pad=4)
         plt.savefig(f"../{self.output_dir}/barplots.jpg")
         plt.close()
         # plt.show()
@@ -122,6 +121,7 @@ class Analyzer:
         plt.title("Average Model Similarity Scores Across CSV Files")
         plt.xticks(x_positions, model_names, rotation=15, ha="center")
         plt.grid(True)
+        plt.axhline(y=0.7, linewidth=1, color="k")
         plt.legend(["Avg Similarity Score"])
         plt.savefig(f"../{self.output_dir}/avg_scores.jpg")
         plt.close()

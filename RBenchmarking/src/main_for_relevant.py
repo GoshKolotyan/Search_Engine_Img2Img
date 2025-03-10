@@ -1,15 +1,19 @@
 import os
-import logging
 import glob
+import logging
 from pathlib import Path
 from analyzer import Analyzer
-from benchmark import RBenchmarking
-from configs import MODEL_NAMES, IMAGES_DIR, OUTPUT_DIR, IMAGES_DIR_FOR_NOT_RELEVANT
+from not_relevant import NotRelevant
+from configs import (
+    MODEL_NAMES,
+    IMAGES_DIR_FOR_NOT_RELEVANT,
+    OUTPUT_DIR_FOR_NOT_RELEVANT,
+)
 
 
 def setup_directories():
-    Path(f"../{OUTPUT_DIR}").mkdir(parents=True, exist_ok=True)
-    Path(f"../{OUTPUT_DIR}/logs").mkdir(parents=True, exist_ok=True)
+    Path(f"../{OUTPUT_DIR_FOR_NOT_RELEVANT}").mkdir(parents=True, exist_ok=True)
+    Path(f"../{OUTPUT_DIR_FOR_NOT_RELEVANT}/logs").mkdir(parents=True, exist_ok=True)
 
 
 def setup_logging():
@@ -18,7 +22,7 @@ def setup_logging():
         level=logging.INFO,
         style="{",
         datefmt="%Y-%m-%d %H:%M",
-        filename=f"../{OUTPUT_DIR}/logs/info.log",
+        filename=f"../{OUTPUT_DIR_FOR_NOT_RELEVANT}/logs/info.log",
     )
     logging.info("Application started successfully.")
 
@@ -32,9 +36,12 @@ def process_image_folder(folder_path: str):
         logging.info(f"Processing model: {model_name} on folder: {folder_path}")
 
         try:
-            rb = RBenchmarking(
-                folder_path=folder_path, model_name=model_name, output_dir=OUTPUT_DIR
+            rb = NotRelevant(
+                folder_path=folder_path,
+                model_name=model_name,
+                output_dir=OUTPUT_DIR_FOR_NOT_RELEVANT,
             )
+
             aug_results = rb.compute_augmented_similarities_for_all_images()
 
             sorted_aug_results = sorted(aug_results.items(), key=lambda x: x[1])
@@ -51,14 +58,14 @@ def process_image_folder(folder_path: str):
 
 
 def analyze_results():
-    csv_dir = Path(f"../{OUTPUT_DIR}")
+    csv_dir = Path(f"../{OUTPUT_DIR_FOR_NOT_RELEVANT}")
     csv_files = glob.glob(str(csv_dir / "**/*.csv"), recursive=True)
 
     if not csv_files:
         logging.warning("No CSV files found for analysis.")
         return
 
-    analyzer = Analyzer(paths=csv_files, output_dir=OUTPUT_DIR)
+    analyzer = Analyzer(paths=csv_files, output_dir=OUTPUT_DIR_FOR_NOT_RELEVANT)
     analyzer()
 
 
@@ -70,6 +77,7 @@ if __name__ == "__main__":
         os.path.join(IMAGES_DIR_FOR_NOT_RELEVANT, folder)
         for folder in os.listdir(IMAGES_DIR_FOR_NOT_RELEVANT)
     ]
+    print(image_folders)
 
     if not image_folders:
         logging.warning(

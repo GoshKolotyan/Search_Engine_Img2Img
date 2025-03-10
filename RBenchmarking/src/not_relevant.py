@@ -1,20 +1,18 @@
 import os
 import csv
-import PIL
 import torch
 import logging
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-import seaborn as sns
+
 
 from PIL import Image
-from typing import Dict
 from torchvision import transforms, models
 from torchvision.models.feature_extraction import create_feature_extractor
 
 
-class RBenchmarking:
-    def __init__(self, folder_path: str, model_name: str, output_dir: str):
+class NotRelevant:
+    def __init__(self, folder_path, model_name, output_dir):
         self.output_dir = output_dir
         self.folder_path = folder_path
         self.original_image_path = self.folder_path + "/original.jpg"
@@ -102,30 +100,7 @@ class RBenchmarking:
         similarity = F.cosine_similarity(self.original_features, image_features, dim=1)
         return similarity.item()
 
-    def augment_image(self, image: Image.Image) -> dict:
-        width, height = image.size
-
-        img_left_area = (0, 0, width // 2, height)
-        img_right_area = (width // 2, 0, width, height)
-        img_top_area = (0, 0, width, height // 2)
-        img_bottom_area = (0, height // 2, width, height)
-
-        augmentations = {
-            "original": image,
-            "flipped_horizontally": image.transpose(Image.FLIP_LEFT_RIGHT),
-            "rotated_20": image.rotate(20),
-            "cropped_from_left": image.crop(img_left_area),
-            "cropped_from_right": image.crop(img_right_area),
-            "cropped_from_top": image.crop(img_top_area),
-            "cropped_from_bottom": image.crop(img_bottom_area),
-        }
-        return augmentations
-
-    def visualize_all_images(
-        self,
-        all_augmented_images: Dict[str, Image.Image],
-        similarity_scores: Dict[str, int],
-    ) -> None:
+    def visualize_all_images(self, all_augmented_images, similarity_scores):
         num_images = len(all_augmented_images)
         num_augmentations = len(next(iter(all_augmented_images.values())))
         fig, axes = plt.subplots(
@@ -164,63 +139,26 @@ class RBenchmarking:
 
         # plt.show()
 
-    def visualize_similarity_heatmap(
-        self,
-        all_augmented_images: Dict[str, Image.Image],
-        similarity_scores: Dict[str, int],
-    ) -> None:
-        filenames = list(all_augmented_images.keys())
-        augmentations = list(next(iter(all_augmented_images.values())).keys())
+    def augment_image(self, image: Image.Image) -> dict:
+        width, height = image.size
 
-        num_images = len(filenames)
-        num_augmentations = len(augmentations)
+        img_left_area = (0, 0, width // 2, height)
+        img_right_area = (width // 2, 0, width, height)
+        img_top_area = (0, 0, width, height // 2)
+        img_bottom_area = (0, height // 2, width, height)
 
-        heatmap_data = torch.zeros((num_images, num_augmentations))
+        augmentations = {
+            "original": image,
+            "flipped_horizontally": image.transpose(Image.FLIP_LEFT_RIGHT),
+            "rotated_20": image.rotate(20),
+            "cropped_from_left": image.crop(img_left_area),
+            "cropped_from_right": image.crop(img_right_area),
+            "cropped_from_top": image.crop(img_top_area),
+            "cropped_from_bottom": image.crop(img_bottom_area),
+        }
+        return augmentations
 
-        for i, filename in enumerate(filenames):
-            for j, aug_name in enumerate(augmentations):
-                score_key = f"{filename} ({aug_name})"
-                heatmap_data[i, j] = similarity_scores.get(score_key, torch.nan)
-
-        fig, ax = plt.subplots(
-            figsize=(num_augmentations * 1.5, num_images * 1.5), dpi=100
-        )
-        sns.heatmap(
-            heatmap_data,
-            annot=True,
-            xticklabels=augmentations,
-            yticklabels=filenames,
-            cmap="coolwarm",
-            linewidths=0.5,
-            fmt=".2f",
-            ax=ax,
-        )
-
-        plt.title(
-            f"Similarity Scores Heatmap - {self.model_name}",
-            fontsize=14,
-            fontweight="bold",
-        )
-        plt.xlabel("Augmentations")
-        plt.ylabel("Original Images")
-        plt.yticks(rotation=20)
-        plt.xticks(rotation=20)
-
-        save_path = (
-            f"../{self.output_dir}/{self.folder_path.split('/')[-1]}/{self.model_name}"
-        )
-        if not os.path.exists(save_path):
-            os.makedirs(save_path, exist_ok=True)
-
-        plt.savefig(save_path + f"/Similarity_Heatmap_{self.model_name}.jpg")
-        plt.close(fig)
-
-        logging.info(
-            f"Saved heatmap in {save_path}/"
-            + f"Similarity_Heatmap_{self.model_name}.jpg"
-        )
-
-    def _record_to_csv(self, similarity_scores: Dict[str, int], model_name: str):
+    def _record_to_csv(self, similarity_scores, model_name):
         save_path = f"../{self.output_dir}/{self.folder_path.split('/')[-1]}"
         csv_filename = f"{save_path}/{self.folder_path.split('/')[-1]}_records.csv"
 
@@ -234,7 +172,7 @@ class RBenchmarking:
 
             records.writerow([model_name, similarity_scores])
 
-    def compute_augmented_similarities_for_all_images(self) -> Dict[str, int]:
+    def compute_augmented_similarities_for_all_images(self) -> dict:
         similarity_scores = {}
         all_augmented_images = {}
 
@@ -260,11 +198,14 @@ class RBenchmarking:
                 score = self.compute_similarity(features)
                 similarity_scores[f"{filename} ({aug_name})"] = score
         self.visualize_all_images(all_augmented_images, similarity_scores)
-        self.visualize_similarity_heatmap(all_augmented_images, similarity_scores)
 
         return similarity_scores
 
-    def plot(self, sorted_results: Dict[str, int]):
+    # TODO
+    def plot_heatmap(self, sorted_results):
+        pass
+
+    def plot(self, sorted_results):
 
         filenames, scores = zip(*sorted_results)
 
