@@ -27,4 +27,3 @@ IMAGES_DIR_FOR_NOT_RELEVANT = "../Not Relevant"
 
 OUTPUT_DIR_FOR_NOT_RELEVANT = "NOT_RELEVANT_OUT"
 
-# TODO save the porest images folder based on model min 3

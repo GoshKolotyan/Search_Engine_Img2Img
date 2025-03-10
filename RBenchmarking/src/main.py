@@ -4,7 +4,7 @@ import glob
 from pathlib import Path
 from analyzer import Analyzer
 from benchmark import RBenchmarking
-from configs import MODEL_NAMES, IMAGES_DIR, OUTPUT_DIR, IMAGES_DIR_FOR_NOT_RELEVANT
+from configs import MODEL_NAMES, IMAGES_DIR, OUTPUT_DIR
 
 
 def setup_directories():
@@ -67,16 +67,16 @@ if __name__ == "__main__":
     setup_logging()
 
     image_folders = [
-        os.path.join(IMAGES_DIR_FOR_NOT_RELEVANT, folder)
-        for folder in os.listdir(IMAGES_DIR_FOR_NOT_RELEVANT)
+        os.path.join(IMAGES_DIR, folder)
+        for folder in os.listdir(IMAGES_DIR)
     ]
 
     if not image_folders:
         logging.warning(
-            f"No image folders found in {IMAGES_DIR_FOR_NOT_RELEVANT}. Exiting."
+            f"No image folders found in {IMAGES_DIR}. Exiting."
         )
     else:
-        for folder in image_folders:
-            process_image_folder(folder)
+        # for folder in image_folders:
+        #     process_image_folder(folder)
 
         analyze_results()
