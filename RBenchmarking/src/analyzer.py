@@ -2,14 +2,15 @@ import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from typing import List
 
 
 class Analyzer:
-    def __init__(self, paths, output_dir):
+    def __init__(self, paths: List[str], output_dir: str):
         self.paths = paths
         self.output_dir = output_dir
 
-    def read_csv(self, path):
+    def read_csv(self, path: str) -> pd.DataFrame:
         try:
             logging.info(f"Loading csv from {path}")
             return pd.read_csv(path)
@@ -17,7 +18,7 @@ class Analyzer:
             logging.error(f"Error reading {path}: {e}")
             return None
 
-    def _plot(self):
+    def _plot(self) -> None:
         dfs = {path: self.read_csv(path) for path in self.paths}
         dfs = {path: df for path, df in dfs.items() if df is not None}
         if not dfs:
@@ -64,10 +65,7 @@ class Analyzer:
         plt.ylabel("Similarity Score")
         plt.title("Model Similarity Scores from Multiple CSV Files")
         plt.xticks(
-            index + (num_csvs * bar_width) / 2, 
-            model_names, 
-            rotation=15, 
-            ha="center"
+            index + (num_csvs * bar_width) / 2, model_names, rotation=15, ha="center"
         )
         # Horizontal threshold line
         plt.axhline(y=0.7, linewidth=1, color="k")
@@ -76,7 +74,7 @@ class Analyzer:
         plt.savefig(f"../{self.output_dir}/barplots.jpg")
         plt.close()
 
-    def _avg_plot(self):
+    def _avg_plot(self) -> None:
         valid_dfs = []
         for path in self.paths:
             df = self.read_csv(path)
@@ -95,8 +93,7 @@ class Analyzer:
         all_data = pd.concat(valid_dfs, ignore_index=True)
 
         avg_scores = (
-            all_data
-            .groupby("Model Name")["Similarity Score"]
+            all_data.groupby("Model Name")["Similarity Score"]
             .mean()
             .reset_index()
             .sort_values("Model Name")
@@ -147,7 +144,7 @@ class Analyzer:
 
         rows = []
         for dir_path, df in dfs.items():
-            if 'Similarity Score' not in df.columns or 'Model Name' not in df.columns:
+            if "Similarity Score" not in df.columns or "Model Name" not in df.columns:
                 logging.error(f"Skipping {dir_path}: Missing required columns.")
                 continue
 
@@ -177,10 +174,11 @@ class Analyzer:
         final_df = self._min_3_dir_based_model()
         if final_df.empty:
             logging.error("No data found to determine smallest directories per model.")
-            return pd.DataFrame(columns=["Model_Name", "Smallest_Folder", "Smallest_Score"])
+            return pd.DataFrame(
+                columns=["Model_Name", "Smallest_Folder", "Smallest_Score"]
+            )
 
         model_smallest_dir = {}
-
 
         for _, row in final_df.iterrows():
             folder_name = row["Folder_Name"]
@@ -192,7 +190,7 @@ class Analyzer:
                 model_score = row[f"Model_name_{i}_score"]
 
                 if model_name is None:
-                    continue 
+                    continue
 
                 if model_name not in model_smallest_dir:
                     model_smallest_dir[model_name] = (folder_name, model_score)
@@ -202,11 +200,18 @@ class Analyzer:
                     if (model_score is not None) and (model_score < current_score):
                         model_smallest_dir[model_name] = (folder_name, model_score)
 
-        model_smallest_dir_df = pd.DataFrame.from_dict(
-            model_smallest_dir, orient="index", columns=["Smallest_Folder", "Smallest_Score"]
-        ).reset_index().rename(columns={"index": "Model_Name"}).to_csv(f"../{self.output_dir}/smales_values_based_on_model.csv")
+        model_smallest_dir_df = (
+            pd.DataFrame.from_dict(
+                model_smallest_dir,
+                orient="index",
+                columns=["Smallest_Folder", "Smallest_Score"],
+            )
+            .reset_index()
+            .rename(columns={"index": "Model_Name"})
+            .to_csv(f"../{self.output_dir}/smales_values_based_on_model.csv")
+        )
 
-        print(model_smallest_dir_df)  
+        print(model_smallest_dir_df)
         return model_smallest_dir_df
 
     def __call__(self):
@@ -220,5 +225,5 @@ class Analyzer:
         """
         self._plot()
         self._avg_plot()
-        self._min_3_dir_based_model()  
+        self._min_3_dir_based_model()
         self.get_smallest_dir_per_model()
