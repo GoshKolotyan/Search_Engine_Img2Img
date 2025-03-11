@@ -8,8 +8,15 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 
+
 class SiameseDataset(Dataset):
-    def __init__(self, root_dir, transform=None, negative_ratio=1.0, seed=42):
+    def __init__(
+        self,
+        root_dir: str,
+        transform: transforms = None,
+        negative_ratio: float = 1.0,
+        seed: int = 42,
+    ):
         super().__init__()
         self.root = root_dir
         self.transform = transform
@@ -17,11 +24,10 @@ class SiameseDataset(Dataset):
         self.seed = seed
         self.negative_ratio = negative_ratio
 
-
         for category in os.listdir(self.root):
             category_path = os.path.join(self.root, category)
             if not os.path.isdir(category_path):
-                continue 
+                continue
             self.data[category] = {}
             for subclass in os.listdir(category_path):
                 subclass_path = os.path.join(category_path, subclass)
@@ -83,14 +89,14 @@ class SiameseDataset(Dataset):
 
         self.neg_pairs = neg_pairs_temp
 
-        # Combining positive and negative pairs into one 
+        # Combining positive and negative pairs into one
         self.pairs = self.pos_pairs + self.neg_pairs
-        random.shuffle(self.pairs)  
+        random.shuffle(self.pairs)
 
     def __len__(self):
         return len(self.pairs)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         img_path1, img_path2, label = self.pairs[index]
 
         img1 = Image.open(img_path1).convert("RGB")
@@ -124,19 +130,20 @@ if __name__ == "__main__":
         ]
     )
 
-    siamese_dataset = SiameseDataset(root_dir, transform=transform, negative_ratio=1.0, seed=42)
+    siamese_dataset = SiameseDataset(
+        root_dir, transform=transform, negative_ratio=1.0, seed=42
+    )
     print(siamese_dataset)
 
     dataloader = DataLoader(
-        dataset=siamese_dataset, 
-        batch_size=3, 
-        num_workers=8, 
-        shuffle=True, 
-        pin_memory=True, #Change false for CPU computing stand for converting from CPU -> GPU 
-    )  
+        dataset=siamese_dataset,
+        batch_size=3,
+        num_workers=8,
+        shuffle=True,
+        pin_memory=True,  # Change false for CPU computing stand for converting from CPU -> GPU
+    )
 
     img1_batch, img2_batch, labels_batch = next(iter(dataloader))
-
 
     img_grid1 = vutils.make_grid(img1_batch, normalize=True, scale_each=True)
     img_grid2 = vutils.make_grid(img2_batch, normalize=True, scale_each=True)
