@@ -71,7 +71,7 @@ class Analyzer:
         plt.axhline(y=0.7, linewidth=1, color="k")
         plt.grid(visible=True)
         plt.legend()
-        plt.savefig(f"../{self.output_dir}/barplots.jpg")
+        plt.savefig(f"../{self.output_dir}/Results/barplots.jpg")
         plt.close()
 
     def _avg_plot(self) -> None:
@@ -123,8 +123,11 @@ class Analyzer:
         plt.grid(True)
         plt.axhline(y=0.7, linewidth=1, color="k")
         plt.legend(["Avg Similarity Score"])
-        plt.savefig(f"../{self.output_dir}/avg_scores.jpg")
+        plt.savefig(f"../{self.output_dir}/Results/avg_scores.jpg")
         plt.close()
+        print(avg_scores)
+        avg_scores.to_csv(f'../{self.output_dir}/Results/avg_scores.csv')
+        return avg_scores
 
     def _min_3_dir_based_model(self) -> pd.DataFrame:
 
@@ -166,7 +169,7 @@ class Analyzer:
             return pd.DataFrame()
 
         final_df = pd.DataFrame(rows, columns=columns)
-        final_df.to_csv(f"../{self.output_dir}/smales_values_based_on_dir.csv")
+        final_df.to_csv(f"../{self.output_dir}/Results/smales_values_based_on_dir.csv")
         return final_df
 
     def get_smallest_dir_per_model(self) -> pd.DataFrame:
@@ -208,7 +211,7 @@ class Analyzer:
             )
             .reset_index()
             .rename(columns={"index": "Model_Name"})
-            .to_csv(f"../{self.output_dir}/smales_values_based_on_model.csv")
+            .to_csv(f"../{self.output_dir}/Results/smales_values_based_on_model.csv")
         )
 
         print(model_smallest_dir_df)

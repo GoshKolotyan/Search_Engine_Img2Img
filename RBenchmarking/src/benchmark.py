@@ -1,6 +1,5 @@
 import os
 import csv
-import PIL
 import torch
 import logging
 import torch.nn.functional as F
@@ -9,8 +8,11 @@ import seaborn as sns
 
 from PIL import Image
 from typing import Dict
+from warnings import filterwarnings
 from torchvision import transforms, models
 from torchvision.models.feature_extraction import create_feature_extractor
+
+filterwarnings("ignore")
 
 
 class RBenchmarking:
@@ -18,45 +20,73 @@ class RBenchmarking:
         self.output_dir = output_dir
         self.folder_path = folder_path
         self.original_image_path = self.folder_path + "/original.jpg"
-        self.model_name = model_name
-
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.model = getattr(models, self.model_name)(weights="IMAGENET1K_V1")
-
-        # Different handling for ViTs vs. CNNs
-        if "vit" in self.model_name:
-            # Extract features from transformer’s last hidden state
-            return_nodes = {"encoder.ln": "features"}
-            self.model = create_feature_extractor(self.model, return_nodes=return_nodes)
-        else:
-            # Extract features from the last convolutional layer
-            self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
-
-        self.model.to(self.device)
-        self.model.eval()
-
-        self.preprocess = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
-        )
-
         if not os.path.isfile(self.original_image_path):
             raise FileNotFoundError(
                 f"Original image not found at: {self.original_image_path}"
             )
-        self.original_image = self._load_image(self.original_image_path)
 
-        if "vit" in self.model_name:
-            self.original_features = self._compute_features_vit(self.original_image)
+        self.original_image = self._load_image(self.original_image_path)
+        self.model_name = model_name
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Different handling for ViTs vs. Dino vs. CNNs
+        if "vit_" in self.model_name:
+            # Extract features from transformer’s last hidden state
+            return_nodes = {"encoder.ln": "features"}
+            self.model = getattr(models, self.model_name)(weights="IMAGENET1K_V1")
+            self.model = create_feature_extractor(self.model, return_nodes=return_nodes).to(self.device).eval()
+    
+            self.preprocess = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                ]
+            )
+            self.original_features = self._compute_features_vit(
+                image=self.original_image
+            )
+
+        elif "dinov2" in self.model_name:
+            logging.info(f"Loading model {self.model_name}")
+            self.model = torch.hub.load("facebookresearch/dinov2", self.model_name)
+            self.model = self.model.to(self.device).eval()
+            self.preprocess = transforms.Compose(
+                [
+                    transforms.Resize((518, 518)),  # Official DINOv2 input size
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406], 
+                        std=[0.229, 0.224, 0.225]
+                    ),
+                ]
+            )
+            self.original_features = self._compute_features_dino(
+                image=self.original_image
+            )
+
         else:
-            self.original_features = self._compute_features(self.original_image)
+            # Extract features from the last convolutional layer
+            self.model = getattr(models, self.model_name)(weights="IMAGENET1K_V1")
+            self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
+            self.model = self.model.to(self.device).eval()
+            self.preprocess = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                ]
+            )
+            self.original_features = self._compute_features(
+                image=self.original_image
+            )
 
     def _load_image(self, image_path: str) -> Image.Image:
         try:
@@ -95,14 +125,28 @@ class RBenchmarking:
         features = features / torch.norm(features, p=2, dim=1, keepdim=True)
         return features
 
+    def _compute_features_dino(self, image: Image.Image) -> torch.Tensor:
+        if image is None:
+            return None
+        input_tensor = self.preprocess(image).unsqueeze(0).to(self.device)
+        with torch.no_grad(), torch.autocast(device_type="cuda"):
+            features = self.model.backbone.forward_features(input_tensor)
+            embeddings = features["x_norm_clstoken"]
+        return F.normalize(embeddings, p=2, dim=-1).squeeze(0)
+
     def compute_similarity(self, image_features: torch.Tensor) -> float:
         if image_features is None or self.original_features is None:
             return float("nan")
 
-        similarity = F.cosine_similarity(self.original_features, image_features, dim=1)
-        return similarity.item()
+        if image_features.dim() > 1:
+            image_features = image_features.squeeze()
 
-    def augment_image(self, image: Image.Image) -> dict:
+        return F.cosine_similarity(
+            self.original_features.unsqueeze(0), image_features.unsqueeze(0), dim=1
+        ).item() if "dinov2" in self.model_name  else  F.cosine_similarity(self.original_features, image_features, dim=1).item()
+
+
+    def augment_image(self, image: Image.Image) -> Dict:
         width, height = image.size
 
         img_left_area = (0, 0, width // 2, height)
@@ -220,7 +264,9 @@ class RBenchmarking:
             + f"Similarity_Heatmap_{self.model_name}.jpg"
         )
 
-    def _record_to_csv(self, similarity_scores: Dict[str, int], model_name: str):
+    def _record_to_csv(
+        self, similarity_scores: Dict[str, int], model_name: str
+    ) -> None:
         save_path = f"../{self.output_dir}/{self.folder_path.split('/')[-1]}"
         csv_filename = f"{save_path}/{self.folder_path.split('/')[-1]}_records.csv"
 
@@ -253,8 +299,12 @@ class RBenchmarking:
             all_augmented_images[filename] = augmented_images
 
             for aug_name, aug_image in augmented_images.items():
-                if "vit" in self.model_name:
+                if "vit_" in self.model_name:
                     features = self._compute_features_vit(aug_image)
+                elif "dinov2" in self.model_name:
+                    features = self._compute_features_dino(
+                        image=aug_image
+                    )
                 else:
                     features = self._compute_features(aug_image)
                 score = self.compute_similarity(features)

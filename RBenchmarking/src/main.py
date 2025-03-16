@@ -1,4 +1,5 @@
 import os
+import torch
 import logging
 import glob
 from pathlib import Path
@@ -10,7 +11,7 @@ from configs import MODEL_NAMES, IMAGES_DIR, OUTPUT_DIR
 def setup_directories():
     Path(f"../{OUTPUT_DIR}").mkdir(parents=True, exist_ok=True)
     Path(f"../{OUTPUT_DIR}/logs").mkdir(parents=True, exist_ok=True)
-
+    Path(f"../{OUTPUT_DIR}/Results").mkdir(parents=True, exist_ok=True)
 
 def setup_logging():
     logging.basicConfig(
@@ -33,11 +34,13 @@ def process_image_folder(folder_path: str):
 
         try:
             rb = RBenchmarking(
-                folder_path=folder_path, model_name=model_name, output_dir=OUTPUT_DIR
-            )
+            folder_path=folder_path, model_name=model_name, output_dir=OUTPUT_DIR
+        )
             aug_results = rb.compute_augmented_similarities_for_all_images()
 
-            sorted_aug_results = sorted(aug_results.items(), key=lambda x: x[1])
+            # sorted_aug_results = sorted(aug_results.items(), key=lambda x: x[1])
+            sorted_aug_results = sorted(aug_results.items(), key=lambda item: item[1], reverse=True)
+
 
             rb.plot(sorted_results=sorted_aug_results)
 
@@ -45,6 +48,7 @@ def process_image_folder(folder_path: str):
             average_score = sum(sum_score) / len(sum_score) if sum_score else 0.0
 
             rb._record_to_csv(similarity_scores=average_score, model_name=model_name)
+            torch.cuda.empty_cache()
 
         except Exception as e:
             logging.error(f"Error processing {model_name} on {folder_path}: {e}")
@@ -61,8 +65,8 @@ def analyze_results():
     analyzer = Analyzer(paths=csv_files, output_dir=OUTPUT_DIR)
     analyzer()
 
-
 if __name__ == "__main__":
+    print("Starting")
     setup_directories()
     setup_logging()
 
@@ -76,7 +80,7 @@ if __name__ == "__main__":
             f"No image folders found in {IMAGES_DIR}. Exiting."
         )
     else:
-        # for folder in image_folders:
-        #     process_image_folder(folder)
+        for folder in image_folders:
+            process_image_folder(folder)
 
         analyze_results()

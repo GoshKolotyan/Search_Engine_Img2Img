@@ -18,12 +18,19 @@ MODEL_NAMES = [
     "swin_v2_t",
     "swin_v2_b",
     "swin_v2_s",
+    "dinov2_vits14_reg_lc", 
+    "dinov2_vitb14_reg_lc",
+    "dinov2_vitl14_reg_lc", 
+    "dinov2_vitg14_reg_lc",
+    "dinov2_vits14_lc", 
+    "dinov2_vitb14_reg_lc",
+    "dinov2_vitl14_reg_lc", 
+    "dinov2_vitg14_reg_lc"
 ]
 
-IMAGES_DIR = "../Toilets"
-OUTPUT_DIR = "TOILET_PLOTS"
+IMAGES_DIR = "../Toilets/Toilets Relevant"
+IMAGES_DIR_FOR_NOT_RELEVANT = "../Toilets/Toilets Not Relevant"
 
-IMAGES_DIR_FOR_NOT_RELEVANT = "../Not Relevant"
-
-OUTPUT_DIR_FOR_NOT_RELEVANT = "NOT_RELEVANT_OUT"
+OUTPUT_DIR = "OUTPUTS/TOILET_RELEVANT_OUT"
+OUTPUT_DIR_FOR_NOT_RELEVANT = "OUTPUTS/NOT_RELEVANT_OUT"
 
