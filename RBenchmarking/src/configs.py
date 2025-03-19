@@ -23,14 +23,15 @@ MODEL_NAMES = [
     "dinov2_vitl14_reg_lc", 
     "dinov2_vitg14_reg_lc",
     "dinov2_vits14_lc", 
-    "dinov2_vitb14_reg_lc",
-    "dinov2_vitl14_reg_lc", 
-    "dinov2_vitg14_reg_lc"
 ]
 
 IMAGES_DIR = "../Toilets/Toilets Relevant"
+IMAGES_DIR_ONE_VS_ALL = "../Toilets/One vs All"
 IMAGES_DIR_FOR_NOT_RELEVANT = "../Toilets/Toilets Not Relevant"
 
 OUTPUT_DIR = "OUTPUTS/TOILET_RELEVANT_OUT"
-OUTPUT_DIR_FOR_NOT_RELEVANT = "OUTPUTS/NOT_RELEVANT_OUT"
+OUTPUT_DIR_ONE_VS_ALL = "OUTPUTS/ONE_VS_ALL"
+OUTPUT_DIR_FOR_NOT_RELEVANT = "OUTPUTS/NOT_RELEVANT_OUT_NEW"
 
+IMAGES_DIR_BATHTUB = "../Faucets/Faucets Not Relevant"
+OUTPUT_DIR_BATHTUB = "OUTPUTS/Faucets Not Relevant"
