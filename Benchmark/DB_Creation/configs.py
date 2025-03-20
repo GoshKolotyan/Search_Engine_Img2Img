@@ -1,18 +1,10 @@
-EMBEDDING_MODEL = "swin_s"
+from dataclasses import dataclass
+
 NUMBER_OF_TREES_FOR_ANNOY_INDEX = 200
 
-METADATA_PATH_FOR_SAVING = "swin_s/features_metadata.pkl"
-INDEX_PATH_FOR_SAVING = "swin_s/image_search_index.ann"
 
 MAX_SIZE = 1024
 
-DB_CONFIGS = {
-    "db_name": "wcproject_v0",
-    "db_user": "postgres",
-    "db_password": "tensor31",
-    "db_host": "localhost",
-    "db_port": "5432",
-}
 
 OUTPUT_BASE_FOLDER = "../Dataset Selection/Images_frankwebb"
 
@@ -28,3 +20,22 @@ MODEL_NAMES = [
     "dinov2_vitl14_reg_lc",
     "dinov2_vitg14_reg_lc",
 ]
+
+
+@dataclass(frozen=True)
+class DBConfigs:
+    NAME: str = "wcproject_v0"
+    USER: str = "postgres"
+    PASSWORD: str = "tensor31"
+    HOST: str = "localhost"
+    PORT: str = "5432"
+
+    def __repr__(self):
+        return f"DBConfigs(NAME={self.NAME}, USER={self.USER}, PASSWORD={self.PASSWORD} HOST={self.HOST}, PORT={self.PORT})"
+
+# Creating an instance
+db_config = DBConfigs()
+
+
+print(db_config)  
+
