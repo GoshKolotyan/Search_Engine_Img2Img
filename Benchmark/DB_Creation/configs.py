@@ -23,12 +23,12 @@ MODEL_NAMES = [
 ]
 
 
-@dataclass(frozen=True)
+# @dataclass(frozen=False)
 class GlobalConfigs:
-    MODEL_NAME: List[str] = field(default_factory=lambda: [
+    MODEL_NAME: List[str] = [
         "swin_b", "swin_s", "swin_t", "swin_v2_b", "swin_v2_s", "swin_v2_t",
         "dinov2_vits14_reg_lc", "dinov2_vitb14_reg_lc", "dinov2_vitl14_reg_lc", "dinov2_vitg14_reg_lc"
-    ])
+    ]
     OUTPUT_BASE_FOLDER: str = "../Dataset Selection/Images_frankwebb"
     MAX_SIZE: int = 1024
     NUMBER_OF_TREES_FOR_ANNOY_INDEX: int = 200
@@ -41,9 +41,6 @@ class GlobalConfigs:
 
 global_config = GlobalConfigs()
 
-print(repr(global_config))  
-
-print("\n")
 @dataclass(frozen=True)
 class DBConfigs:
     NAME: str = "wcproject_v0"
@@ -56,7 +53,4 @@ class DBConfigs:
         return f"DBConfigs(NAME={self.NAME}, USER={self.USER}, PASSWORD={self.PASSWORD} HOST={self.HOST}, PORT={self.PORT})"
 
 db_config = DBConfigs()
-
-
-print(db_config)  
 

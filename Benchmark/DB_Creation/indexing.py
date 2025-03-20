@@ -53,27 +53,26 @@ class ModelDatabaseBuilder:
             self.feature_dim = feature_vector.view(-1).shape[0]
 
         elif "dino" in self.model_name:
-            self.model = torch.hub.load("facebookresearch/dinov2", self.model_name)
-            self.model = self.model.to(self.device).eval()
+            self.model = torch.hub.load("facebookresearch/dinov2", self.model_name).to(self.device).eval()
             self.preprocess = transforms.Compose(
                 [
-                    transforms.Resize((518, 518)),  # Official DINOv2 input size
+                    transforms.Resize((518, 518)),
                     transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406], 
-                        std=[0.229, 0.224, 0.225]
-                    ),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                 ]
             )
-            dummy_input = torch.zeros(1, 3, 518, 518)
+            dummy_input = torch.zeros(1, 3, 518, 518).to(self.device)
             with torch.no_grad():
-                feature_vector = self.model(dummy_input)
-            self.feature_dim = feature_vector.view(-1).shape[0]
+                features = self.model.backbone.forward_features(dummy_input)
+                embeddings = features["x_norm_clstoken"]
+            self.feature_dim = embeddings.shape[-1]
+
 
 
 
         self.database_features = []
         self.database_metadata = []
+        print(f"Feature dimension used for Annoy: {self.feature_dim}")
 
         logging.info("Initilazting of DatabaseBuilder")
 
@@ -116,7 +115,7 @@ class ModelDatabaseBuilder:
                         image_path = os.path.join(category_path, filename)
 
                         image = Image.open(image_path).convert("RGB")
-                        print(filename)
+                        # print(filename)
                         # Attempt to parse product_id from the filename (before first underscore)
                         # product_id = int(filename.split("_")[0])
 
